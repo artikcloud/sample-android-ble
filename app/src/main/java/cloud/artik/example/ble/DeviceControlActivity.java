@@ -52,10 +52,10 @@ public class DeviceControlActivity extends Activity {
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
-    private String mSamiDeviceId;
+    private String mArtikCloudDeviceId;
 
     private TextView mConnectionState;
-    private TextView mSamiDeviceIdTxtView;
+    private TextView mArtikCloudDeviceIdTxtView;
     private TextView mDataField;
     private String mDeviceName;
     private String mDeviceAddress;
@@ -131,9 +131,9 @@ public class DeviceControlActivity extends Activity {
                         final BluetoothGattCharacteristic characteristic =
                                 mGattCharacteristics.get(groupPosition).get(childPosition);
                         if (UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT).equals(characteristic.getUuid())) {
-                            mSamiDeviceIdTxtView.setText(mSamiDeviceId);
+                            mArtikCloudDeviceIdTxtView.setText(mArtikCloudDeviceId);
                         } else {
-                            mSamiDeviceIdTxtView.setText(R.string.NA);
+                            mArtikCloudDeviceIdTxtView.setText(R.string.NA);
                         }
                         final int charaProp = characteristic.getProperties();
                         if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
@@ -176,10 +176,10 @@ public class DeviceControlActivity extends Activity {
         mGattServicesList = (ExpandableListView) findViewById(R.id.gatt_services_list);
         mGattServicesList.setOnChildClickListener(servicesListClickListner);
         mConnectionState = (TextView) findViewById(R.id.connection_state);
-        mSamiDeviceIdTxtView = (TextView) findViewById(R.id.sami_deviceid);
+        mArtikCloudDeviceIdTxtView = (TextView) findViewById(R.id.artikcloud_deviceid);
         mDataField = (TextView) findViewById(R.id.data_value);
 
-        mSamiDeviceId = ArtikCloudSession.getInstance().getDeviceId();
+        mArtikCloudDeviceId = ArtikCloudSession.getInstance().getDeviceId();
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);

@@ -1,6 +1,6 @@
 <!--
 /*
- * Copyright (C) 2015 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2016 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
     android:paddingLeft="16dp"
     android:paddingRight="16dp"
     android:paddingTop="16dp"
-    tools:context="io.samsungsami.example.ble.LoginActivity" >
+    tools:context="cloud.artik.example.ble.LoginActivity" >
 
 	<RelativeLayout
 		android:id="@+id/ask_for_login"
@@ -36,7 +36,7 @@
         android:id="@+id/hello_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Please login to SAMI" />
+        android:text="Please login to ARTIK Cloud" />
 
      <Button
         android:id="@+id/btn"

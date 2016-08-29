@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 /*
- * Copyright (C) 2015 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2016 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 -->
 
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/menu_logout_sami"
-          android:title="@string/menu_logout_sami"
+    <item android:id="@+id/menu_logout_cloud"
+          android:title="@string/menu_logout_cloud"
           android:orderInCategory="100"
           android:showAsAction="ifRoom|withText"/>
 </menu>

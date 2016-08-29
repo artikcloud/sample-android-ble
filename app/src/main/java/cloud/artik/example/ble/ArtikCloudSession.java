@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2016 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,54 +16,49 @@
 
 package cloud.artik.example.ble;
 
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
-import java.math.BigDecimal;
 
-import io.samsungsami.api.DevicesApi;
-import io.samsungsami.api.MessagesApi;
-import io.samsungsami.api.UsersApi;
-import io.samsungsami.websocket.Acknowledgement;
-import io.samsungsami.websocket.ActionOut;
-import io.samsungsami.websocket.DeviceChannelWebSocket;
-import io.samsungsami.websocket.Error;
-import io.samsungsami.websocket.MessageIn;
-import io.samsungsami.websocket.MessageOut;
-import io.samsungsami.websocket.RegisterMessage;
-import io.samsungsami.websocket.SamiWebSocketCallback;
+import cloud.artik.api.DevicesApi;
+import cloud.artik.api.MessagesApi;
+import cloud.artik.api.UsersApi;
+import cloud.artik.client.ApiClient;
+import cloud.artik.model.Acknowledgement;
+import cloud.artik.model.ActionOut;
+import cloud.artik.model.MessageIn;
+import cloud.artik.model.MessageOut;
+import cloud.artik.model.RegisterMessage;
+import cloud.artik.model.WebSocketError;
+import cloud.artik.websocket.ArtikCloudWebSocketCallback;
+import cloud.artik.websocket.DeviceChannelWebSocket;
+
 
 public class ArtikCloudSession {
     private static final String TAG = ArtikCloudSession.class.getSimpleName();
 
-    public static final String SAMI_AUTH_BASE_URL = "https://accounts.samsungsami.io";
+    public static final String ARTIK_CLOUD_AUTH_BASE_URL = "https://accounts.artik.cloud";
     public static final String CLIENT_ID = "b120963174a84eff897770624f829ee5";//YWU
     public static final String REDIRECT_URL = "android-app://redirect";
-    public static final String SAMI_REST_URL = "https://api.samsungsami.io/v1.1";
-
-    private static final String AUTHORIZATION = "Authorization";
 
     // For websocket message
     private static final String HEART_RATE = "heart_rate";
 
 
-    // SAMI device type id used by this app
+    // ARTIK Cloud device type id used by this app
     // device name: "SAMI Example Heart Rate Tracker"
     // As a hacker, get the device type id using the following ways
-    //   -- login to https://api-console.samsungsami.io/sami
+    //   -- login to https://api-console.artik.cloud/
     //   -- Click "Get Device Types" api
     //   -- Fill in device name as above
     //   -- Click "Try it"
     //   -- The device type id is "id" field in the response body
-    // You should be able to get this device type id programmatically.
-    // Consult https://blog.samsungsami.io/mobile/development/2015/02/09/developing-with-sami-part-2.html#get-the-withings-device-info
     //
     public static final String DEVICE_TYPE_ID_HEART_RATE_TRACKER = "dtaeaf898b4db9418baab77563b7ea2254";
 
@@ -96,14 +91,14 @@ public class ArtikCloudSession {
     }
 
     public String getAuthorizationRequestUri() {
-        //https://accounts.samsungsami.io/authorize?client=mobile&client_id=xxxx&response_type=token&redirect_uri=http://localhost:81/samidemo/index.php
-        return ArtikCloudSession.SAMI_AUTH_BASE_URL + "/authorize?client=mobile&response_type=token&" +
+        //https://accounts.artik.cloud/authorize?client=mobile&client_id=xxxx&response_type=token&redirect_uri=http://localhost:81/acdemo/index.php
+        return ArtikCloudSession.ARTIK_CLOUD_AUTH_BASE_URL + "/authorize?client=mobile&response_type=token&" +
                 "client_id=" + ArtikCloudSession.CLIENT_ID + "&redirect_uri=" + ArtikCloudSession.REDIRECT_URL;
     }
 
     public String getLogoutRequestUri() {
-        //https://accounts.samsungsami.io/logout?redirect_uri=http://localhost:81/samidemo/index.php
-        return ArtikCloudSession.SAMI_AUTH_BASE_URL + "/authorize?client=mobile&response_type=token&" +
+        //https://accounts.artik.cloud/logout?redirect_uri=http://localhost:81/acdemo/index.php
+        return ArtikCloudSession.ARTIK_CLOUD_AUTH_BASE_URL + "/authorize?client=mobile&response_type=token&" +
                 "client_id=" + ArtikCloudSession.CLIENT_ID + "&redirect_uri=" + ArtikCloudSession.REDIRECT_URL;
     }
 
@@ -116,23 +111,15 @@ public class ArtikCloudSession {
         mAccessToken = token;
     }
 
-    public void setupSamiRestApis() {
+    public void setupArtikCloudRestApis() {
         // Invoke the appropriate API
-        mUsersApi = new UsersApi();
-        mUsersApi.setBasePath(SAMI_REST_URL);
-        mUsersApi.addHeader(AUTHORIZATION, "bearer " + mAccessToken);
+        ApiClient apiClient = new ApiClient();
+        apiClient.setAccessToken(mAccessToken);
+        apiClient.setDebugging(true);
 
-        mDevicesApi = new DevicesApi();
-        mDevicesApi.setBasePath(SAMI_REST_URL);
-        mDevicesApi.addHeader(AUTHORIZATION, "bearer " + mAccessToken);
-
-        mMessagesApi = new MessagesApi();
-        mMessagesApi.setBasePath(SAMI_REST_URL);
-        mMessagesApi.addHeader(AUTHORIZATION, "bearer " + mAccessToken);
-    }
-
-    public void logout() {
-        reset();
+        mUsersApi = new UsersApi(apiClient);
+        mDevicesApi = new DevicesApi(apiClient);
+        mMessagesApi = new MessagesApi(apiClient);
     }
 
     public UsersApi getUsersApi() {
@@ -186,10 +173,9 @@ public class ArtikCloudSession {
      *
      */
     public void onNewHeartRate(final int heartRate, final long ts) {
-        mHandler.post(new Runnable() {
-            @Override
-            public void run() { sendViaWebsocket(heartRate, ts);}
-        });
+        MessageIn message = getWSMessage(heartRate, ts);
+        Log.d(TAG, "sendViaWebsocket: send(" + message + ")");
+        new SendOnDeviceChannelInBackground().execute(message);
     }
 
     /**
@@ -204,76 +190,94 @@ public class ArtikCloudSession {
     }
 
     /**
-     * Setup websocket bidirectional pipeline and register to SAMI
+     * Setup websocket bidirectional pipeline and register to ARTIK Cloud
      */
     private void connectDeviceChannelWebSocket() {
         try {
-            mWebsocket = new DeviceChannelWebSocket(true, new SamiWebSocketCallback() {
+            mWebsocket = new DeviceChannelWebSocket(true, new ArtikCloudWebSocketCallback() {
                 @Override
-                public void onOpen(short i, String s) {
+                public void onOpen(int i, String s) {
                     final RegisterMessage registerMessage = getWSRegisterMessage();
-                    Log.d(TAG, "WebSocket: onOpen calling websocket.send(" + registerMessage.toString() + ")");
+                    Log.d(TAG, "DeviceChannelWebSocket: onOpen calling websocket.send(" + registerMessage.toString() + ")");
 
                     try {
                         mWebsocket.registerChannel(registerMessage);
-                    } catch (JsonProcessingException e) {
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
 
                 @Override
                 public void onMessage(MessageOut messageOut) {
-                    Log.d(TAG, "WebSocket: onMessage(" + messageOut.toString() + ")");
+                    Log.d(TAG, "DeviceChannelWebSocket: onMessage(" + messageOut.toString() + ")");
                 }
 
                 @Override
                 public void onAction(ActionOut actionOut) {
-                    Log.d(TAG, "WebSocket: onAction(" + actionOut.toString() + ")");
+                    Log.d(TAG, "DeviceChannelWebSocket: onAction(" + actionOut.toString() + ")");
                 }
 
                 @Override
                 public void onAck(Acknowledgement acknowledgement) {
-                    Log.d(TAG, "WebSocket: onAck(" + acknowledgement.toString());
+                    Log.d(TAG, "DeviceChannelWebSocket: onAck(" + acknowledgement.toString());
                 }
 
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
-                    Log.d(TAG, "WebSocket: onClose() code = " + code + "; reason = " + reason + "; remote = " + remote);
+                    Log.d(TAG, "DeviceChannelWebSocket: onClose() code = " + code + "; reason = " + reason + "; remote = " + remote);
                 }
 
                 @Override
-                public void onError(Error error) {
-                    Log.d(TAG, "WebSocket: onError() errorMsg = " + error.getMessage());
+                public void onError(WebSocketError error) {
+                    Log.d(TAG, "DeviceChannelWebSocket: onError() errorMsg = " + error.getMessage());
+                }
+
+                @Override
+                public void onPing(long timestamp) {
+                    Log.d(TAG, "DeviceChannelWebSocket::onPing: " + timestamp);
                 }
             });
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException|IOException e) {
             e.printStackTrace();
+        }
+
+        try {
+            mWebsocket.connect();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        mWebsocket.connect();
     }
 
     public void disconnectDeviceChannelWebSocket() {
-        if (mWebsocket != null ) {
-            mWebsocket.close();
+        if (mWebsocket == null) {
+            return;
         }
-    }
-
-    /**
-     * Connects to /websocket
-     *
-     */
-    private void sendViaWebsocket(final int heartRate, final long ts) {
-        MessageIn message = getWSMessage(heartRate, ts);
         try {
-            mWebsocket.sendMessage(message);
-            Log.d(TAG, "sendViaWebsocket: send(" + message +")");
-        } catch (JsonProcessingException e) {
+            mWebsocket.close();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    private class SendOnDeviceChannelInBackground extends AsyncTask<MessageIn, Void, Void> {
+        final static String TAG = "SendOnDeviceChannel";
+        @Override
+        protected Void doInBackground(MessageIn... messages) {
+            try {
+                mWebsocket.sendMessage(messages[0]);
+            } catch (Exception e) {
+                Log.v(TAG, "::doInBackground run into Exception");
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            // Do nothing!
+        }
+    }
+
 
     /**
      * Returns JSON payload of the registration message for Bi-directional websocket
@@ -296,7 +300,7 @@ public class ArtikCloudSession {
         MessageIn message = new MessageIn();
         message.setCid("myMessage");
         message.setSdid(mDeviceId);
-        message.setTs(BigDecimal.valueOf(ts));
+        message.setTs(ts);
         Map<String, Object> data = new HashMap<String, Object>();
         data.put(HEART_RATE, heartRate);
         message.setData(data);

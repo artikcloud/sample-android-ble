@@ -191,37 +191,37 @@ public class DeviceScanActivity extends ListActivity {
 
     // Adapter for holding devices found through scanning.
     private class LeDeviceListAdapter extends BaseAdapter {
-        private ArrayList<BluetoothDevice> mSAMIDevices;
+        private ArrayList<BluetoothDevice> mArtikCloudDevices;
         private LayoutInflater mInflator;
 
         public LeDeviceListAdapter() {
             super();
-            mSAMIDevices = new ArrayList<BluetoothDevice>();
+            mArtikCloudDevices = new ArrayList<BluetoothDevice>();
             mInflator = DeviceScanActivity.this.getLayoutInflater();
         }
 
         public void addDevice(BluetoothDevice device) {
-            if(!mSAMIDevices.contains(device)) {
-                mSAMIDevices.add(device);
+            if(!mArtikCloudDevices.contains(device)) {
+                mArtikCloudDevices.add(device);
             }
         }
 
         public BluetoothDevice getDevice(int position) {
-            return mSAMIDevices.get(position);
+            return mArtikCloudDevices.get(position);
         }
 
         public void clear() {
-            mSAMIDevices.clear();
+            mArtikCloudDevices.clear();
         }
 
         @Override
         public int getCount() {
-            return mSAMIDevices.size();
+            return mArtikCloudDevices.size();
         }
 
         @Override
         public Object getItem(int i) {
-            return mSAMIDevices.get(i);
+            return mArtikCloudDevices.get(i);
         }
 
         @Override
@@ -243,7 +243,7 @@ public class DeviceScanActivity extends ListActivity {
                 viewHolder = (ViewHolder) view.getTag();
             }
 
-            BluetoothDevice device = mSAMIDevices.get(i);
+            BluetoothDevice device = mArtikCloudDevices.get(i);
             final String deviceName = device.getName();
             if (deviceName != null && deviceName.length() > 0)
                 viewHolder.deviceName.setText(deviceName);

@@ -29,18 +29,12 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-
-import io.samsungsami.model.Message;
-import io.samsungsami.model.MessageIDEnvelope;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -73,7 +67,7 @@ public class BluetoothLeService extends Service {
     public final static UUID UUID_HEART_RATE_MEASUREMENT =
             UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
 
-    private Integer mHeartRateForSAMI = null;
+    private Integer mHeartRateForArtikCloud = null;
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -151,9 +145,9 @@ public class BluetoothLeService extends Service {
             intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
             sendBroadcast(intent);
 
-            mHeartRateForSAMI = heartRate;
+            mHeartRateForArtikCloud = heartRate;
 
-            sendHeartRateToSami();
+            sendHeartRateToArtikCloud();
         }
         // Comment out the original code that sends other measurement data to UI so that
         // only heart rate data is sent to UI and then to ARTIK Cloud
@@ -338,45 +332,11 @@ public class BluetoothLeService extends Service {
         return mBluetoothGatt.getServices();
     }
 
-    private void sendHeartRateToSami() {
+    private void sendHeartRateToArtikCloud() {
 
-        // Choose one of the two ways to send heart rates: REST POST call or websocket.
-        // Comment out the one that you are not using.
-        ArtikCloudSession.getInstance().onNewHeartRate(mHeartRateForSAMI, System.currentTimeMillis());
-//       new PostMsgInBackground().execute();
+        ArtikCloudSession.getInstance().onNewHeartRate(mHeartRateForArtikCloud, System.currentTimeMillis());
 
     }
 
-    private class PostMsgInBackground extends AsyncTask<Void, Void, MessageIDEnvelope> {
-        final static String TAG = "PostMsgInBackground";
-        @Override
-        protected MessageIDEnvelope doInBackground(Void... params) {
-            MessageIDEnvelope retVal = null;
-            try {
-                HashMap<String, Object> data = new HashMap<String, Object>();
-                data.put("heart_rate", mHeartRateForSAMI);
-                Message msg = new Message();
-                msg.setSdid(ArtikCloudSession.getInstance().getDeviceId());
-                msg.setData(data);
-                msg.setTs(BigDecimal.valueOf(System.currentTimeMillis()));
-                retVal= ArtikCloudSession.getInstance().getMessagesApi().postMessage(msg);
-                Log.v(TAG, "::onPostExecute sending heart rate " + mHeartRateForSAMI);
-            } catch (Exception e) {
-                Log.w(TAG, "::doInBackground run into Exception");
-                e.printStackTrace();
-            }
-
-            return retVal;
-        }
-
-        @Override
-        protected void onPostExecute(MessageIDEnvelope result) {
-            if (result == null) {
-                Log.v(TAG, "::onPostExecute latestMessage is null!");
-                return;
-            }
-            Log.v(TAG, "::onPostExecute response to sending message = " + result.getData().toString());
-        }
-    }
 
 }

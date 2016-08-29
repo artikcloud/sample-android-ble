@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2016 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,28 +38,36 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import io.samsungsami.model.Device;
-import io.samsungsami.model.DeviceArray;
-import io.samsungsami.model.DevicesEnvelope;
-import io.samsungsami.model.User;
-import io.samsungsami.model.UserEnvelope;
+import cloud.artik.client.ApiCallback;
+import cloud.artik.client.ApiException;
+import cloud.artik.model.Device;
+import cloud.artik.model.DeviceArray;
+import cloud.artik.model.DeviceEnvelope;
+import cloud.artik.model.DevicesEnvelope;
+import cloud.artik.model.User;
+import cloud.artik.model.UserEnvelope;
 
 public class ArtikCloudDeviceActivity extends ListActivity {
-    private static final String TAG = "ArtikCloudDeviceActivity";
+    private static final String TAG = "AKCDeviceActivity";
 
     private TextView mWelcome;
     private TextView mInstruction;
     private Button mNewDeviceButton;
-    private SAMIDeviceListAdapter mDeviceListAdapter;
+    private ArtikCloudDeviceListAdapter mDeviceListAdapter;
     private ArtikCloudDeviceManager mDeviceManager;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //YWU TODO Remove temp code
+        Log.d(TAG, "Enter onCreate");
+
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_samidevices);
-        getActionBar().setTitle(R.string.sami_devices_title);
+        setContentView(R.layout.activity_artikcloud_devices);
+        getActionBar().setTitle(R.string.artikcloud_devices_title);
 
         mNewDeviceButton = (Button)findViewById(R.id.btn);
         mWelcome = (TextView)findViewById(R.id.welcome);
@@ -68,8 +76,8 @@ public class ArtikCloudDeviceActivity extends ListActivity {
         mNewDeviceButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 try {
-                    Log.v(TAG, ":create sami device button is clicked.");
-                    createSamiDevice();
+                    Log.v(TAG, ":new device button is clicked");
+                    addDevice();
                 } catch (Exception e) {
                     Log.v(TAG, "Run into Exception");
                     e.printStackTrace();
@@ -78,27 +86,27 @@ public class ArtikCloudDeviceActivity extends ListActivity {
         });
 
         // Initializes list view adapter.
-        mDeviceListAdapter = new SAMIDeviceListAdapter();
+        mDeviceListAdapter = new ArtikCloudDeviceListAdapter();
         setListAdapter(mDeviceListAdapter);
 
         mDeviceManager = new ArtikCloudDeviceManager();
 
-        ArtikCloudSession.getInstance().setupSamiRestApis();
-        new GetUserInfoInBackground().execute();
+        ArtikCloudSession.getInstance().setupArtikCloudRestApis();
+
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.samidevices, menu);
-        menu.findItem(R.id.menu_logout_sami).setVisible(true);
+        getMenuInflater().inflate(R.menu.artikcloud_devices, menu);
+        menu.findItem(R.id.menu_logout_cloud).setVisible(true);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
-            case R.id.menu_logout_sami:
-                new LogoutSAMIInBackground().execute();
+            case R.id.menu_logout_cloud:
+                new LogoutArtikCloudInBackground().execute();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -111,6 +119,14 @@ public class ArtikCloudDeviceActivity extends ListActivity {
     }
 
     @Override
+    public void onResume() {
+        //YWU TODO Remove temp code
+        Log.d(TAG, "Enter onResume");
+        super.onResume();
+        getUserInfo();
+    }
+
+    @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
         final ArtikCloudDeviceWrapper device = mDeviceListAdapter.getDevice(position);
         if (device == null) return;
@@ -118,33 +134,43 @@ public class ArtikCloudDeviceActivity extends ListActivity {
         startBLEScanActivity();
     }
 
-    private void createSamiDevice() {
-        new CreateDeviceInBackground().execute();
+    private void handleDeviceCreationSuccessOnUIThread(final Device newDevice) {
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), "ARTIK Cloud device " + newDevice.getId() + "creation succeeded!", Toast.LENGTH_SHORT).show();
+                mDeviceManager.updateDevices(newDevice); // single device
+                ArtikCloudSession.getInstance().setDeviceId(newDevice.getId());
+                startBLEScanActivity();
+            }
+        });
     }
 
-    private void onDeviceCreationSucceed(Device newDevice) {
-        mDeviceManager.updateDevices(newDevice); // single device
-        ArtikCloudSession.getInstance().setDeviceId(newDevice.getId());
-        Toast.makeText (this, "SAMI device " +newDevice.getId() +"creation succeeded!", Toast.LENGTH_SHORT).show();
-        startBLEScanActivity();
+    private void UpdateDeviceListOnUIThread(final DeviceArray deviceArray) {
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mDeviceManager.updateDevices(deviceArray);
+                refreshDeviceList();            }
+        });
     }
 
     private void refreshDeviceList() {
         ArrayList<ArtikCloudDeviceWrapper> appDevices = mDeviceManager.getDevicesByType(ArtikCloudSession.DEVICE_TYPE_ID_HEART_RATE_TRACKER);
+        mDeviceListAdapter.clear();
         if (appDevices.size() == 0) {
             mNewDeviceButton.setVisibility(View.VISIBLE);
-            mInstruction.setText("You do not have a compatible device on SAMI. Please create one");
-            mDeviceListAdapter.clear();
+            mInstruction.setText(R.string.create_artikcloud_device_hint);
         } else {
-            mInstruction.setText("Please select a device on the list to use");
+            mInstruction.setText(R.string.select_device);
             mNewDeviceButton.setVisibility(View.GONE);
             for (ArtikCloudDeviceWrapper device : appDevices) {
                 mDeviceListAdapter.addDevice(device);
             }
         }
         mDeviceListAdapter.notifyDataSetChanged();
-    }
 
+    }
     private void startBLEScanActivity() {
         Log.d(TAG, "StartBLEScanActivity calling startActivity()");
         ArtikCloudSession.getInstance().setupWebsocket();
@@ -160,89 +186,121 @@ public class ArtikCloudDeviceActivity extends ListActivity {
         finish();
     }
 
-    private void onGetUserInfo(User user) {
+    private void handleUserInfoOnUIThread(final User user) {
         if (user == null) {
             return;
         }
-        mWelcome.setText("Welcome " + user.getFullName());
-        ArtikCloudSession.getInstance().setUserId(user.getId());
-        new GetDeviceListInBackground().execute();
-    }
-
-    class GetUserInfoInBackground extends AsyncTask<Void, Void, UserEnvelope> {
-        final static String TAG = "GetUserInfoInBackground";
-        @Override
-        protected UserEnvelope doInBackground(Void... params) {
-            UserEnvelope retVal = null;
-            try {
-                retVal= ArtikCloudSession.getInstance().getUsersApi().self();
-            } catch (Exception e) {
-                Log.v(TAG, "::doInBackground run into Exception");
-                e.printStackTrace();
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mWelcome.setText("Welcome " + user.getFullName());
+                ArtikCloudSession.getInstance().setUserId(user.getId());
+                GetDeviceList();
             }
+        });
+    }
 
-            return retVal;
+    private void getUserInfo()
+    {
+        final String tag = TAG + " getSelfAsync";
+        if (ArtikCloudSession.getInstance().getUserId() != null) {
+            GetDeviceList();
+            return;
         }
+        try {
+            ArtikCloudSession.getInstance().getUsersApi().getSelfAsync(new ApiCallback<UserEnvelope>() {
+                @Override
+                public void onFailure(ApiException exc, int statusCode, Map<String, List<String>> map) {
+                    processFailure(tag, exc);
+                }
 
-        @Override
-        protected void onPostExecute(UserEnvelope result) {
-            Log.v(TAG, "::setupSamiApi self name = " + result.getData().getFullName());
-            onGetUserInfo(result.getData());
+                @Override
+                public void onSuccess(cloud.artik.model.UserEnvelope result, int statusCode, Map<String, List<String>> map) {
+                    Log.v(tag, " onSuccess() self name = " + result.getData().getFullName());
+                    handleUserInfoOnUIThread(result.getData());
+                }
+
+                @Override
+                public void onUploadProgress(long bytes, long contentLen, boolean done) {
+                }
+
+                @Override
+                public void onDownloadProgress(long bytes, long contentLen, boolean done) {
+                }
+            });
+        } catch (ApiException exc) {
+            processFailure(tag, exc);
         }
     }
 
-    class CreateDeviceInBackground extends AsyncTask<Void, Void, Device> {
-        final static String TAG = "CreateDeviceInBackground";
-        @Override
-        protected Device doInBackground(Void... params) {
-            Device retVal = null;
-            try {
-                Device device = new Device();
-                device.setDtid(ArtikCloudSession.DEVICE_TYPE_ID_HEART_RATE_TRACKER);
-                device.setUid(ArtikCloudSession.getInstance().getUserId());
-                device.setName("ble test device"); //Note this is a limitation --the name is always this one.
-                retVal = ArtikCloudSession.getInstance().getDevicesApi().addDevice(device).getData();
-            } catch (Exception e) {
-                Log.v(TAG, "::doInBackground run into Exception");
-                e.printStackTrace();
-            }
+    private void addDevice() {
+        final String tag = TAG + " addDeviceAsync";
+        cloud.artik.model.Device device = new cloud.artik.model.Device();
+        device.setDtid(ArtikCloudSession.DEVICE_TYPE_ID_HEART_RATE_TRACKER);
+        device.setUid(ArtikCloudSession.getInstance().getUserId());
+        device.setName("ble test device"); //Note this is a limitation --the name is always this one.
+        try {
+            ArtikCloudSession.getInstance().getDevicesApi().addDeviceAsync(device, new ApiCallback<DeviceEnvelope>() {
+                @Override
+                public void onFailure(ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
+                    Log.e(tag, "onFailure: e = " + e + "; statusCode = " + statusCode);
+                    processFailure(tag, e);
+                }
 
-            return retVal;
-        }
+                @Override
+                public void onSuccess(DeviceEnvelope result, int statusCode, Map<String, List<String>> responseHeaders) {
+                    Log.v(tag, " onSuccess " + result.toString());
+                    handleDeviceCreationSuccessOnUIThread(result.getData());
+                }
 
-        @Override
-        protected void onPostExecute(Device result) {
-            Log.v(TAG, "::created device with Id: " + result.getId());
-            onDeviceCreationSucceed(result);
-        }
-    }
+                @Override
+                public void onUploadProgress(long bytes, long contentLen, boolean done) {
+                }
 
-    class GetDeviceListInBackground extends AsyncTask<Void, Void, DeviceArray> {
-        final static String TAG = "GetDeviceListInBackground";
-        @Override
-        protected DeviceArray doInBackground(Void... params) {
-            DeviceArray deviceArray = null;
-            try {
-                DevicesEnvelope devicesEnvelope = ArtikCloudSession.getInstance().getUsersApi().getUserDevices(0, 100, false, ArtikCloudSession.getInstance().getUserId());
-                deviceArray = devicesEnvelope.getData();
-
-            } catch (Exception e) {
-                Log.v(TAG, "::doInBackground run into Exception");
-                e.printStackTrace();
-            }
-
-            return deviceArray;
-        }
-
-        @Override
-        protected void onPostExecute(DeviceArray devices) {
-            mDeviceManager.updateDevices(devices);
-            refreshDeviceList();
+                @Override
+                public void onDownloadProgress(long bytes, long contentLen, boolean done) {
+                }
+            });
+        } catch (ApiException exc) {
+            processFailure(tag, exc);
         }
     }
 
-    class LogoutSAMIInBackground extends AsyncTask<Void, Void, String> {
-        final static String TAG = "LogoutSAMIInBackground";
+    private void GetDeviceList() {
+        final String tag = TAG + " getUserDevicesAsync";
+        try {
+            ArtikCloudSession.getInstance().getUsersApi().getUserDevicesAsync(ArtikCloudSession.getInstance().getUserId(),
+                    null, null, false, new ApiCallback<DevicesEnvelope>() {
+                        @Override
+                        public void onFailure(ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
+                            Log.e(tag, "onFailure: e = " + e + "; statusCode = " + statusCode);
+                            processFailure(tag, e);
+                        }
+
+                        @Override
+                        public void onSuccess(DevicesEnvelope result, int statusCode, Map<String, List<String>> responseHeaders) {
+                            Log.v(tag, " onSuccess " + result.toString());
+                            UpdateDeviceListOnUIThread(result.getData());
+                        }
+
+                        @Override
+                        public void onUploadProgress(long bytes, long contentLen, boolean done) {
+                        }
+
+                        @Override
+                        public void onDownloadProgress(long bytes, long contentLen, boolean done) {
+                        }
+
+                    });
+
+        }  catch (ApiException exc) {
+            processFailure(tag, exc);
+        }
+    }
+
+    //YWU TODO what is this? Do we need it?
+    class LogoutArtikCloudInBackground extends AsyncTask<Void, Void, String> {
+        final static String TAG = "LogoutInBackground";
         @Override
         protected String doInBackground(Void... params) {
             ArtikCloudSession.getInstance().disconnectDeviceChannelWebSocket();
@@ -272,39 +330,39 @@ public class ArtikCloudDeviceActivity extends ListActivity {
         }
     }
 
-    // Adapter for holding SAMI devices, which device type is compatible with this app.
-    private class SAMIDeviceListAdapter extends BaseAdapter {
-        private ArrayList<ArtikCloudDeviceWrapper> mSAMIDevices;
+    // Adapter for holding ARTIK Cloud devices, which device type is compatible with this app.
+    private class ArtikCloudDeviceListAdapter extends BaseAdapter {
+        private ArrayList<ArtikCloudDeviceWrapper> mArtikCloudDevices;
         private LayoutInflater mInflator;
 
-        public SAMIDeviceListAdapter() {
+        public ArtikCloudDeviceListAdapter() {
             super();
-            mSAMIDevices = new ArrayList<ArtikCloudDeviceWrapper>();
+            mArtikCloudDevices = new ArrayList<>();
             mInflator = ArtikCloudDeviceActivity.this.getLayoutInflater();
         }
 
         public void addDevice(ArtikCloudDeviceWrapper device) {
-            if(!mSAMIDevices.contains(device)) {
-                mSAMIDevices.add(device);
+            if(!mArtikCloudDevices.contains(device)) {
+                mArtikCloudDevices.add(device);
             }
         }
 
         public ArtikCloudDeviceWrapper getDevice(int position) {
-            return mSAMIDevices.get(position);
+            return mArtikCloudDevices.get(position);
         }
 
         public void clear() {
-            mSAMIDevices.clear();
+            mArtikCloudDevices.clear();
         }
 
         @Override
         public int getCount() {
-            return mSAMIDevices.size();
+            return mArtikCloudDevices.size();
         }
 
         @Override
         public Object getItem(int i) {
-            return mSAMIDevices.get(i);
+            return mArtikCloudDevices.get(i);
         }
 
         @Override
@@ -317,7 +375,7 @@ public class ArtikCloudDeviceActivity extends ListActivity {
             ViewHolder viewHolder;
             // General ListView optimization code.
             if (view == null) {
-                view = mInflator.inflate(R.layout.listitem_samidevice, null);
+                view = mInflator.inflate(R.layout.listitem_artikcloud_device, null);
                 viewHolder = new ViewHolder();
                 viewHolder.deviceId = (TextView) view.findViewById(R.id.device_id);
                 viewHolder.deviceName = (TextView) view.findViewById(R.id.device_name);
@@ -326,7 +384,7 @@ public class ArtikCloudDeviceActivity extends ListActivity {
                 viewHolder = (ViewHolder) view.getTag();
             }
 
-            ArtikCloudDeviceWrapper device = mSAMIDevices.get(i);
+            ArtikCloudDeviceWrapper device = mArtikCloudDevices.get(i);
             final String deviceName = device.name;
             if (deviceName != null && deviceName.length() > 0)
                 viewHolder.deviceName.setText(deviceName);
@@ -341,5 +399,12 @@ public class ArtikCloudDeviceActivity extends ListActivity {
     static class ViewHolder {
         TextView deviceName;
         TextView deviceId;
+    }
+
+    ///// Helpers
+    private void processFailure(final String context, ApiException exc) {
+        String errorDetail = " onFailure with exception" + exc;
+        Log.w(context, errorDetail);
+        exc.printStackTrace();
     }
 }

@@ -20,7 +20,7 @@
     <string name="label_data">Data:</string>
     <string name="label_device_address">Device address:</string>
     <string name="label_state">BLE State:</string>
-    <string name="label_sami_deviceid">ARTIK Cloud Device ID:</string>
+    <string name="label_artikcloud_deviceid">ARTIK Cloud Device ID:</string>
     <string name="NA">N/A</string>
     <string name="no_data">No data</string>
     <string name="connected">Connected</string>
@@ -37,10 +37,11 @@
     <string name="menu_disconnect">BLE Disconnect</string>
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
-    <string name="menu_logout_sami">Logout ARTIK Cloud</string>
+    <string name="menu_logout_cloud">Logout ARTIK Cloud</string>
 
     <!-- ArtikCloudDeviceActivity -->
     <string name="welcome_txt">Welcome </string>
-    <string name="sami_devices_title">ARTIK Cloud Devices</string>
-
+    <string name="artikcloud_devices_title">ARTIK Cloud Devices</string>
+    <string name="create_artikcloud_device_hint">You do not have a compatible device on ARTIK Cloud. Please create one</string>
+    <string name="select_device">Please select a device on the list to use</string>
 </resources>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2016 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ public class LoginActivity extends Activity {
                     // Extract OAuth2 access_token in URL
                     String[] sArray = uri.split("&");
                     for (String paramVal : sArray) {
-                        if (paramVal.indexOf("access_token=") != -1) {
+                        if (paramVal.contains("access_token=")) {
                             String[] paramValArray = paramVal.split("access_token=");
                             String accessToken = paramValArray[1];
                             onGetAccessToken(accessToken);
@@ -99,11 +99,11 @@ public class LoginActivity extends Activity {
     private void onGetAccessToken(String accessToken)
     {
         ArtikCloudSession.getInstance().setAccessToken(accessToken);
-        ArtikCloudSession.getInstance().setupSamiRestApis();
-        startSamiDeviceActivity(accessToken);
+        ArtikCloudSession.getInstance().setupArtikCloudRestApis();
+        startArtikCloudDeviceActivity(accessToken);
     }
 
-    private void startSamiDeviceActivity(String accessToken) {
+    private void startArtikCloudDeviceActivity(String accessToken) {
         Intent activityIntent = new Intent(this, ArtikCloudDeviceActivity.class);
         startActivity(activityIntent);
     }

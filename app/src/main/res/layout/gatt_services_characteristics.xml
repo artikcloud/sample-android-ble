@@ -57,11 +57,11 @@
         android:layout_margin="10dp">
         <TextView android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/label_sami_deviceid"
+            android:text="@string/label_artikcloud_deviceid"
             android:textSize="15sp"/>
         <Space android:layout_width="5dp"
             android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/sami_deviceid"
+        <TextView android:id="@+id/artikcloud_deviceid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/NA"
