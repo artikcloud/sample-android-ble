@@ -62,7 +62,6 @@ public class ArtikCloudDeviceActivity extends ListActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        //YWU TODO Remove temp code
         Log.d(TAG, "Enter onCreate");
 
         super.onCreate(savedInstanceState);
@@ -120,7 +119,6 @@ public class ArtikCloudDeviceActivity extends ListActivity {
 
     @Override
     public void onResume() {
-        //YWU TODO Remove temp code
         Log.d(TAG, "Enter onResume");
         super.onResume();
         getUserInfo();
