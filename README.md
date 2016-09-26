@@ -3,7 +3,7 @@
 The sample Android app demonstrates how to onboard a Bluetooth Low Energy Device and stream data from the device to ARTIK Cloud in real time using WebSockets.
 
 The blog post [Develop Android Application to onboard Bluetooth Low Energy devices to ARTIK Cloud
-](https://www.artik.io/blog/2016/09/develop-android-application-to-onboard-bluetooth-low-energy-devices-to-artik-cloud/) at https://www.artik.io/blog/cloud/ describes what the app does and how to setup/install/implement it.
+](https://www.artik.io/blog/2016/09/build-an-android-app-with-ble-and-artik-cloud/) at https://www.artik.io/blog/cloud/ describes what the app does and how to setup/install/implement it.
 
 More about ArtikCloud
 ---------------

@@ -44,7 +44,7 @@ public class ArtikCloudSession {
     private static final String TAG = ArtikCloudSession.class.getSimpleName();
 
     public static final String ARTIK_CLOUD_AUTH_BASE_URL = "https://accounts.artik.cloud";
-    public static final String CLIENT_ID = "b120963174a84eff897770624f829ee5";//YWU
+    public static final String CLIENT_ID = "<YOUR CLIENT ID>";
     public static final String REDIRECT_URL = "android-app://redirect";
 
     // For websocket message
